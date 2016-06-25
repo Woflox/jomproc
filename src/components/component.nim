@@ -4,58 +4,56 @@ type
   Entity* = uint32
   Component* = ref object of RootObj
     entity: Entity
-  ComponentList* = ref object
-    index: int
-    components: TableRef[Entity, seq[Component]]
+  ComponentList* [T] = object
+    components: TableRef[Entity, seq[T]]
 
 
 var currentEntityId* : Entity = 0
-var componentLists* : seq[ComponentList] = @[]
 
 proc newEntity* : Entity =
   result = currentEntityId
   inc currentEntityId
 
-proc newComponentList* : ComponentList =
-  result = ComponentList(index: componentLists.len, components: newTable[Entity, seq[Component]]())
-  componentLists.add(result)
+proc newComponentList* [T] : ComponentList[T] =
+  result = ComponentList[T](components: newTable[Entity, seq[T]]())
 
-proc add* (self: ComponentList, entity: Entity, component: Component) =
+let components* = newComponentList[Component]()
+
+proc add* [T] (self: ComponentList[T], entity: Entity, component: T) =
   if not self.components.hasKey(entity):
     self.components[entity] = @[]
   self.components[entity].add(component)
 
-iterator items* (self: ComponentList): Component =
+iterator items* [T] (self: ComponentList[T]): T =
   for entityComponents in self.components.values:
     for component in entityComponents:
       yield component
 
-iterator `[]`* (self: ComponentList, entity: Entity): Component =
+iterator `[]`* [T] (self: ComponentList[T], entity: Entity): T =
   for component in self.components[entity]:
     yield component
 
-proc getUnique* (self: ComponentList, entity: Entity): Component =
+proc getUnique* [T] (self: ComponentList[T], entity: Entity): T =
   self.components[entity][0]
-
-#proc getUniqueComponent[T] (self: ComponentList, self: Entity): [T] =
     
 
-template defineComponent* (typeName, accessor, listAccessor, componentList: stmt) {.immediate.} =
-  let componentList = newComponentList()
+template defineComponent* (T, accessor, listAccessor, componentList: stmt) {.immediate.} =
+  let componentList = newComponentList[T]()
 
-  proc accessor* (self: Component): typeName = 
+  proc accessor* (self: Component): T = 
     componentList.getUnique(self.entity)
   
-  iterator listAccessor* : typeName =
-    componentList.items
+  proc accessor* (self: Entity): T = 
+    componentList.getUnique(self)
 
-  iterator listAccessor* (self: Component): typeName =
+  iterator listAccessor* : T =
+    for component in componentList:
+      yield component
+
+  iterator listAccessor* (self: Component): T =
     for component in componentList[self.entity]:
       yield component
   
-  iterator listAccessor* (self: Entity): typeName =
+  iterator listAccessor* (self: Entity): T =
     for component in componentList[self]:
       yield component
-    
-  # proc addComponent*(self: Entity, component: typeName) = 
-
