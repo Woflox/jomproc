@@ -1,5 +1,7 @@
 import tables
 import sequtils
+import macros
+import strutils
 
 type
   Entity* = uint32
@@ -79,7 +81,7 @@ template defineGeneralComponent* (T, baseClass: typedesc, listAccessor, componen
     for component in componentList[self]:
       yield component
   
-  when T is not Component:
+  when baseClass is Component:
     method add* (self: T) =
       procCall(baseClass(self).add())
       componentList.add(self)
@@ -87,7 +89,10 @@ template defineGeneralComponent* (T, baseClass: typedesc, listAccessor, componen
     method removeEntityFromLists* (self: T) =
       procCall(baseClass(self).removeEntityFromLists())
       componentList.remove(self.entity)
-    
+
+macro defineGeneralComponent* (typeName, baseTypeName: expr): stmt =
+  parseStmt("defineGeneralComponent($1, $2, get$1s, list$1)".format(typeName.ident, baseTypeName.ident))
+
 #############
 ## Unique component template
 
@@ -112,19 +117,17 @@ template defineUniqueComponent* (T, baseClass: typedesc, accessor, listAccessor,
     procCall(baseClass(self).removeEntityFromLists())
     componentList.remove(self.entity)
 
+macro defineUniqueComponent* (typeName, baseTypeName: expr): stmt =
+  parseStmt("defineUniqueComponent($1, $2, get$1, get$1s, list$1)".format(typeName.ident, baseTypeName.ident))
+
 ############
 ## Callback system
 
-#type
-#  EventHandler* = object
-#    s: seq[proc(){.closure.}] 
-
-#proc addListener(self: EventHandler, listener: proc(){.closure.}) =
-#  self.s.add(listener)
-
-template registerListener* (procName, callableList, callback: untyped, T: typedesc, componentList: untyped, body: stmt) =
+template defineListener* (procName: untyped, T: typedesc, body: stmt) =
   proc procName(self: T) =
     body
+
+template registerListener* (procName, callableList, callback: untyped, T: typedesc, componentList: untyped) =
   when not compiles(callableList[0]):
     var callableList* = newSeq[proc()]()
     proc procName() =
@@ -134,6 +137,14 @@ template registerListener* (procName, callableList, callback: untyped, T: typede
     for component in componentList:
       component.procName()
   callableList.add(callback)
+  echo "ADDING CALLBACK"
+
+macro registerListener* (procName, typeName: expr): stmt =
+  parseStmt("registerListener($1, $1List, $1$2s, $2, list$2)".format(procName.ident, typeName.ident))
+
+template listener* (procName, T: untyped, body: stmt) =
+  defineListener(procName, T, body)
+  registerListener(procName, T)
 
 ############
 ## Component implementation

@@ -1,35 +1,35 @@
 import component
 import tables
 import events
+import macros
 
 type
   Transform = ref object of Component
-    x : float
   Shape = ref object of Component
 
-defineUniqueComponent(Transform, Component, getTransform, getTransforms, transformList)
-defineUniqueComponent(Shape, Component, getShape, getShapes, shapeList)
-#defineComponent(Transform, transforms)
+
+defineUniqueComponent(Transform, Component)
+defineGeneralComponent(Shape, Component)
+
+Transform(entity: newEntity()).add()
+
+Transform(entity: newEntity()).add()
 
 
+Shape(entity: newEntity()).add()
 
-#var ar = newTable[typedesc, int]()
+let shapeEntity = newEntity();
 
-#proc test[T]: int =
-#  ar[T]
+Shape(entity: shapeEntity).add()
+Shape(entity: shapeEntity).add()
 
-#echo test[Transform]
+let shapeB = Shape(entity: newEntity())
+shapeB.add()
 
-#let entity = newEntity()
-let transform = Transform(entity: newEntity())
-transform.add()
+listener update, Transform:
+  echo "Update transform "
 
-let b = transform.getTransform()
-
-registerListener (update, updateList, updateTransforms, Transform, transformList):
-  echo "UPDATING"
-
-registerListener (update, updateList, updateShapes, Shape, shapeList):
-  echo "UPDATING"
+listener update, Shape:
+  echo "SHAPEYEAH!" 
 
 update()
