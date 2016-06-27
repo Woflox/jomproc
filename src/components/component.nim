@@ -5,9 +5,10 @@ type
   Entity* = uint32
   Component* = ref object of RootObj
     entity* : Entity
-  ComponentList* [T] = object
+  ComponentList* = ref object of RootObj
+  GeneralComponentList* [T] = ref object of ComponentList
     components: TableRef[Entity, seq[T]]
-  UniqueComponentList* [T] = object
+  UniqueComponentList* [T] = ref object of ComponentList
     components: TableRef[Entity, T]
 
 var currentEntityId* : Entity = 0
@@ -17,26 +18,26 @@ proc newEntity* : Entity =
   inc currentEntityId
 
 #############
-##ComponentList
+## GeneralComponentList
 
-proc newComponentList* [T] : ComponentList[T] =
-  result = ComponentList[T](components: newTable[Entity, seq[T]]())
+proc newGeneralComponentList* [T] : GeneralComponentList[T] =
+  result = GeneralComponentList[T](components: newTable[Entity, seq[T]]())
 
-proc add* [T] (self: ComponentList[T], component: T) =
+proc add* [T] (self: GeneralComponentList[T], component: T) =
   if not self.components.hasKey(component.entity):
     self.components[component.entity] = @[]
   self.components[component.entity].add(component)
 
-proc remove* [T] (self: ComponentList[T], entity: Entity) =
+proc remove* [T] (self: GeneralComponentList[T], entity: Entity) =
   if self.components.hasKey(entity):
     self.components.del(entity)
 
-iterator items* [T] (self: ComponentList[T]): T =
+iterator items* [T] (self: GeneralComponentList[T]): T =
   for entityComponents in self.components.values:
     for component in entityComponents:
       yield component
 
-iterator `[]`* [T] (self: ComponentList[T], entity: Entity): T =
+iterator `[]`* [T] (self: GeneralComponentList[T], entity: Entity): T =
   for component in self.components[entity]:
     yield component
 
@@ -63,8 +64,8 @@ proc `[]`* [T] (self: UniqueComponentList[T], entity: Entity): T =
 #############
 ## Component template
 
-template defineComponent* (T, baseClass: typedesc, listAccessor, componentList: untyped) =
-  let componentList = newComponentList[T]()
+template defineGeneralComponent* (T, baseClass: typedesc, listAccessor, componentList: untyped) =
+  let componentList = newGeneralComponentList[T]()
 
   iterator listAccessor* : T =
     for component in componentList:
@@ -114,26 +115,30 @@ template defineUniqueComponent* (T, baseClass: typedesc, accessor, listAccessor,
 ############
 ## Callback system
 
+#type
+#  EventHandler* = object
+#    s: seq[proc(){.closure.}] 
 
-#template listener* (procName: stmt, T: typedesc, componentList, body: stmt) {.immediate.} =
-#  proc procName[T] (componentList: T) =
-#    for component in T:
-#      component.procName()
-#  when not(compiles(proc procName[T] (componentList: T) = discard)):
-#    proc procName[T] (componentList: T) =
-#      for component in T:
-#        component.procName()
-#  proc procName(self: T) =
-#    body
+#proc addListener(self: EventHandler, listener: proc(){.closure.}) =
+#  self.s.add(listener)
 
-
-
-
+template registerListener* (procName, callableList, callback: untyped, T: typedesc, componentList: untyped, body: stmt) =
+  proc procName(self: T) =
+    body
+  when not compiles(callableList[0]):
+    var callableList* = newSeq[proc()]()
+    proc procName() =
+      for callbackProc in callableList:
+        callbackProc()
+  proc callback() =
+    for component in componentList:
+      component.procName()
+  callableList.add(callback)
 
 ############
 ## Component implementation
 
-defineComponent(Component, RootObj, components, componentList)
+defineGeneralComponent(Component, RootObj, components, componentList)
 
 method add* (self: Component) {.base.} =
   componentList.add(self)

@@ -1,5 +1,6 @@
 import component
 import tables
+import events
 
 type
   Transform = ref object of Component
@@ -9,6 +10,8 @@ type
 defineUniqueComponent(Transform, Component, getTransform, getTransforms, transformList)
 defineUniqueComponent(Shape, Component, getShape, getShapes, shapeList)
 #defineComponent(Transform, transforms)
+
+
 
 #var ar = newTable[typedesc, int]()
 
@@ -23,3 +26,10 @@ transform.add()
 
 let b = transform.getTransform()
 
+registerListener (update, updateList, updateTransforms, Transform, transformList):
+  echo "UPDATING"
+
+registerListener (update, updateList, updateShapes, Shape, shapeList):
+  echo "UPDATING"
+
+update()
