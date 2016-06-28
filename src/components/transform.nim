@@ -1,6 +1,6 @@
 import component
 import tables
-import events
+#import events
 import macros
 
 type
@@ -11,7 +11,8 @@ type
 defineUniqueComponent(Transform, Component)
 defineGeneralComponent(Shape, Component)
 
-Transform(entity: newEntity()).add()
+let ent = newEntity()
+Transform(entity: ent).add()
 
 Transform(entity: newEntity()).add()
 
@@ -23,13 +24,15 @@ let shapeEntity = newEntity();
 Shape(entity: shapeEntity).add()
 Shape(entity: shapeEntity).add()
 
-let shapeB = Shape(entity: newEntity())
-shapeB.add()
+registerEvent:
+  proc update(dt: float)
+  proc render()
 
-listener update, Transform:
-  echo "Update transform "
+proc update(self: Transform, dt: float) {.listener.} =
+  echo "UPDATE TRANSFORM"
 
-listener update, Shape:
-  echo "SHAPEYEAH!" 
+proc render(self: Shape) {.listener.} =
+  echo "RENDER TRANSFORM"
 
-update()
+update(4f)
+shapeEntity.render()
