@@ -125,6 +125,24 @@ macro defineUniqueComponent* (typeName, baseTypeName: expr): stmt =
   parseStmt("defineUniqueComponent($1, $2, get$1, get$1s, list$1)".format(typeName.ident, baseTypeName.ident))
 
 ############
+## Component implementation
+
+defineGeneralComponent(Component, RootObj, components, componentList)
+
+method add* (self: Component) {.base.} =
+  componentList.add(self)
+
+method removeEntityFromLists* (self: Component) {.base.} = discard
+
+method onDestroy* (self: Component) {.base.} = discard
+
+proc destroy* (self: Entity) =
+  for component in self.components:
+    component.removeEntityFromLists()
+    component.onDestroy()
+  componentList.remove(self)
+
+############
 ## Event listener system
 
 proc parseProcDef (procDef: NimNode, skipFirst: bool): auto =
@@ -198,22 +216,3 @@ $1List.add($1$5s)
 $1EntityList.add($1Entity$5s)
 """.format(procName, params, paramsUntyped, entityParams, componentType)
   result.add(parseStmt(code))
-
-############
-## Component implementation
-
-defineGeneralComponent(Component, RootObj, components, componentList)
-
-method add* (self: Component) {.base.} =
-  componentList.add(self)
-
-method removeEntityFromLists* (self: Component) {.base.} = discard
-
-method onDestroy* (self: Component) {.base.} = discard
-
-proc destroy* (self: Entity) =
-  for component in self.components:
-    component.removeEntityFromLists()
-    component.onDestroy()
-  componentList.remove(self)
-
