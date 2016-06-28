@@ -198,7 +198,6 @@ $1List.add($1$5s)
 $1EntityList.add($1Entity$5s)
 """.format(procName, params, paramsUntyped, entityParams, componentType)
   result.add(parseStmt(code))
-  #return parseStmt("echo \"\"\"" & code & "\"\"\"")
 
 ############
 ## Component implementation
